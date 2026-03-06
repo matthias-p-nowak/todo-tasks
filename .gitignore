@@ -1,0 +1,19 @@
+# dist
+dist/
+
+# generated icons
+apple-touch-icon.png
+icon-192.png
+icon-512.png
+
+# compiled frontend assets
+app.js
+app.js.map
+main.css
+main.css.map
+
+# database
+tasks.db
+
+# auth credentials
+.htpasswd
