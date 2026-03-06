@@ -1,5 +1,16 @@
 dist_dir := "dist"
 
+# Build app.js and main.css (one-shot)
+build: js css
+
+# Compile src/app.ts → app.js
+js:
+    esbuild --bundle src/app.ts --outdir=. --sourcemap
+
+# Compile src/main.scss → main.css
+css:
+    sass src/main.scss:main.css
+
 # Generate icon PNGs from icon.svg
 icons:
     rsvg-convert -w 180 -h 180 icon.svg -o apple-touch-icon.png
