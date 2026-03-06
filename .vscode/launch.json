@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "PHP: Listen for Xdebug",
+      "type": "php",
+      "request": "launch",
+      "port": 9003,
+
+    },
+    {
+      "name": "Firefox: Launch localhost",
+      "type": "firefox",
+      "request": "launch",
+      "url": "http://127.0.0.1:8000/public",
+      "webRoot": "${workspaceFolder}",
+      "profile": "devel"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "PHP + Firefox",
+      "configurations": [
+        "PHP: Listen for Xdebug",
+        "Firefox: Launch localhost"
+      ],
+      "stopAll": true,
+      "preLaunchTask": "start-php-server"
+    }
+  ]
+}

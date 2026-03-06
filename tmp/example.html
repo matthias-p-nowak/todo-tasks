@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: darkgreen;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 20px 16px;
+      font-family: sans-serif;
+      font-size: 15px;
+    }
+
+    #card {
+      background: #fff;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 8px;
+      align-self: flex-start;
+      overflow: visible;
+    }
+
+    .task {
+      display: flex;
+      align-items: center;
+      padding: 11px 14px;
+      border-bottom: 1px solid #e8e8e8;
+      gap: 8px;
+      min-height: 44px;
+    }
+
+    .task-title {
+      flex: 1;
+      word-break: break-word;
+    }
+
+    /* tasks without a due date are just the title — clickable to assign date */
+    .task.no-date .task-title { cursor: pointer; }
+
+    /* tasks with a due date: title, status badge, date */
+    .task.has-date .task-title { cursor: pointer; }
+
+    .status-badge {
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+      position: relative;
+    }
+    .status-todo    { background: lightblue; }
+    .status-doing   { background: lightgreen; }
+    .status-done    { background: darkgreen; color: #fff; }
+    .status-removed { background: #c9a97a; }
+
+    .due-date {
+      font-size: 13px;
+      color: #555;
+      cursor: pointer;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    #input-row {
+      border-bottom: 1px solid #e8e8e8;
+    }
+    #new-task-input {
+      width: 100%;
+      border: none;
+      padding: 11px 14px;
+      font-size: 15px;
+      outline: none;
+      background: transparent;
+    }
+
+    /* --- overlays --- */
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .overlay-box {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 240px;
+    }
+
+    .overlay-box label { font-size: 13px; color: #666; }
+
+    .overlay-box input {
+      font-size: 16px;
+      padding: 6px 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100%;
+    }
+
+    .overlay-box button {
+      padding: 7px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      background: #333;
+      color: #fff;
+      align-self: flex-end;
+    }
+
+    /* --- status dropdown --- */
+
+    .status-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 200;
+      overflow: hidden;
+      min-width: 90px;
+    }
+
+    .status-menu-item {
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .status-menu-item:hover { background: #f2f2f2; }
+  </style>
+</head>
+<body>
+
+<div id="card"></div>
+
+<script>
+// ── data ──────────────────────────────────────────────────────────────────────
+
+let nextId = 8;
+let tasks = [
+  { id: 1, title: 'Buy groceries',     dueDate: null,         status: null,      createdAt: 1 },
+  { id: 2, title: 'Call dentist',       dueDate: null,         status: null,      createdAt: 2 },
+  { id: 3, title: 'Read chapter 5',     dueDate: null,         status: null,      createdAt: 3 },
+  { id: 4, title: 'Team meeting',       dueDate: '2026-03-07', status: 'doing',   createdAt: 4 },
+  { id: 5, title: 'Submit report',      dueDate: '2026-03-10', status: 'todo',    createdAt: 5 },
+  { id: 6, title: 'Fix bug #42',        dueDate: '2026-03-15', status: 'removed', createdAt: 6 },
+  { id: 7, title: 'Pay rent',           dueDate: '2026-03-01', status: 'done',    createdAt: 7 },
+];
+
+const STATUS_CYCLE = ['todo', 'doing', 'done', 'removed'];
+
+// ── render ────────────────────────────────────────────────────────────────────
+
+function render() {
+  const card = document.getElementById('card');
+  card.innerHTML = '';
+
+  const noDue = tasks
+    .filter(t => !t.dueDate)
+    .sort((a, b) => a.createdAt - b.createdAt);
+
+  const hasDue = tasks
+    .filter(t => t.dueDate)
+    .sort((a, b) => a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : a.createdAt - b.createdAt);
+
+  noDue.forEach(t => card.appendChild(makeNoDueRow(t)));
+
+  const inputRow = document.createElement('div');
+  inputRow.id = 'input-row';
+  const input = document.createElement('input');
+  input.id = 'new-task-input';
+  input.type = 'text';
+  input.placeholder = 'new task';
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && input.value.trim()) {
+      tasks.push({ id: nextId++, title: input.value.trim(), dueDate: null, status: null, createdAt: Date.now() });
+      render();
+    }
+  });
+  inputRow.appendChild(input);
+  card.appendChild(inputRow);
+
+  hasDue.forEach(t => card.appendChild(makeHasDueRow(t)));
+}
+
+// ── row builders ──────────────────────────────────────────────────────────────
+
+function makeNoDueRow(task) {
+  const row = document.createElement('div');
+  row.className = 'task no-date';
+
+  const title = document.createElement('span');
+  title.className = 'task-title';
+  title.textContent = task.title;
+  title.addEventListener('click', () => openDatePicker(task));
+
+  row.appendChild(title);
+  return row;
+}
+
+function makeHasDueRow(task) {
+  const row = document.createElement('div');
+  row.className = 'task has-date';
+
+  const title = document.createElement('span');
+  title.className = 'task-title';
+  title.textContent = task.title;
+  title.addEventListener('click', () => openTitleEditor(task));
+
+  const badge = document.createElement('span');
+  badge.className = `status-badge status-${task.status}`;
+  badge.textContent = task.status;
+  badge.addEventListener('click', e => {
+    e.stopPropagation();
+    if (task.status === 'removed') {
+      toggleStatusMenu(badge, task);
+    } else {
+      const idx = STATUS_CYCLE.indexOf(task.status);
+      task.status = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+      render();
+    }
+  });
+
+  const due = document.createElement('span');
+  due.className = 'due-date';
+  due.textContent = formatDate(task.dueDate);
+  due.addEventListener('click', () => openDatePicker(task));
+
+  row.appendChild(title);
+  row.appendChild(badge);
+  row.appendChild(due);
+  return row;
+}
+
+// ── overlays ──────────────────────────────────────────────────────────────────
+
+function openDatePicker(task) {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+
+  const box = document.createElement('div');
+  box.className = 'overlay-box';
+
+  const label = document.createElement('label');
+  label.textContent = 'Pick a due date';
+
+  const inp = document.createElement('input');
+  inp.type = 'date';
+  inp.value = task.dueDate || '';
+
+  const btn = document.createElement('button');
+  btn.textContent = 'OK';
+  btn.addEventListener('click', () => {
+    if (inp.value) {
+      task.dueDate = inp.value;
+      if (!task.status) task.status = 'todo';
+    }
+    overlay.remove();
+    render();
+  });
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  box.appendChild(label);
+  box.appendChild(inp);
+  box.appendChild(btn);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  inp.focus();
+}
+
+function openTitleEditor(task) {
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+
+  const box = document.createElement('div');
+  box.className = 'overlay-box';
+
+  const label = document.createElement('label');
+  label.textContent = 'Edit title';
+
+  const inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = task.title;
+
+  const btn = document.createElement('button');
+  btn.textContent = 'OK';
+  btn.addEventListener('click', () => {
+    if (inp.value.trim()) task.title = inp.value.trim();
+    overlay.remove();
+    render();
+  });
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
+
+  box.appendChild(label);
+  box.appendChild(inp);
+  box.appendChild(btn);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  inp.select();
+}
+
+function toggleStatusMenu(badge, task) {
+  const existing = badge.querySelector('.status-menu');
+  if (existing) { existing.remove(); return; }
+
+  const menu = document.createElement('div');
+  menu.className = 'status-menu';
+
+  ['todo', 'doing', 'done'].forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'status-menu-item';
+    item.textContent = s;
+    item.addEventListener('click', e => {
+      e.stopPropagation();
+      task.status = s;
+      render();
+    });
+    menu.appendChild(item);
+  });
+
+  badge.appendChild(menu);
+
+  const close = e => {
+    if (!badge.contains(e.target)) { menu.remove(); document.removeEventListener('click', close); }
+  };
+  setTimeout(() => document.addEventListener('click', close), 0);
+}
+
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// ── init ──────────────────────────────────────────────────────────────────────
+
+render();
+</script>
+</body>
+</html>

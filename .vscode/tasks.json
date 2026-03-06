@@ -1,0 +1,82 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "start-php-server",
+      "type": "shell",
+      "command": "php",
+      "args": [
+        "-d",
+        "xdebug.mode=debug",
+        "-d",
+        "xdebug.start_with_request=yes",
+        "-d",
+        "xdebug.client_host=127.0.0.1",
+        "-d",
+        "xdebug.client_port=9003",
+        "-S",
+        "0.0.0.0:8000",
+        "-t",
+        "${workspaceFolder}"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "php",
+        "pattern": [
+          {
+            "regexp": "^(?:Fatal error|Parse error):\\s+(.*) in (.*) on line (\\d+)$",
+            "message": 1,
+            "file": 2,
+            "line": 3
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^PHP .* Development Server",
+          "endsPattern": "Development Server \\(http://0\\.0\\.0\\.0:8000\\) started"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "compile js",
+      "type": "shell",
+      "command": "esbuild",
+      "args": [
+        "--bundle",
+        "src/app.ts",
+        "--outdir=${workspaceFolder}",
+        "--sourcemap",
+        "--watch"
+      ],
+      "problemMatcher": [
+        "$tsc-watch"
+      ],
+      "isBackground": true
+    },
+    {
+      "label": "watch-scss",
+      "type": "shell",
+      "command": "sass",
+      "args": [
+        "-w",
+        "src/main.scss:main.css"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}

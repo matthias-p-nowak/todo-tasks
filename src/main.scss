@@ -1,0 +1,193 @@
+// ── reset ─────────────────────────────────────────────────────────────────────
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+// ── page ──────────────────────────────────────────────────────────────────────
+
+body {
+  background: darkgreen;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 20px 16px;
+  font-family: sans-serif;
+  font-size: 15px;
+}
+
+// ── card ──────────────────────────────────────────────────────────────────────
+
+#card {
+  background: #fff;
+  width: 100%;
+  max-width: 420px;
+  border-radius: 8px;
+  align-self: flex-start;
+}
+
+// ── task rows ─────────────────────────────────────────────────────────────────
+
+.task {
+  display: flex;
+  align-items: center;
+  padding: 11px 14px;
+  border-bottom: 1px solid #e8e8e8;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.task-title {
+  flex: 1;
+  word-break: break-word;
+  cursor: pointer;
+}
+
+// ── status badge ──────────────────────────────────────────────────────────────
+
+.status-badge {
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  position: relative;
+}
+
+.status-todo    { background: lightblue; }
+.status-doing   { background: lightgreen; }
+.status-done    { background: darkgreen; color: #fff; }
+.status-removed { background: #c9a97a; }
+
+// ── due date ──────────────────────────────────────────────────────────────────
+
+.due-date {
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+// ── input row ─────────────────────────────────────────────────────────────────
+
+#input-row {
+  border-bottom: 1px solid #e8e8e8;
+}
+
+#new-task-input {
+  width: 100%;
+  border: none;
+  padding: 11px 14px;
+  font-size: 15px;
+  outline: none;
+  background: transparent;
+}
+
+// ── error dialog ──────────────────────────────────────────────────────────────
+
+.overlay-box--error {
+  background: #c0392b;
+  color: #fff;
+  cursor: pointer;
+}
+
+// ── overlay ───────────────────────────────────────────────────────────────────
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.overlay-box {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 240px;
+
+  label {
+    font-size: 13px;
+    color: #666;
+  }
+
+  input {
+    font-size: 16px;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 100%;
+  }
+
+  button {
+    padding: 7px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background: #333;
+    color: #fff;
+    align-self: flex-end;
+  }
+}
+
+// ── delete confirmation buttons ───────────────────────────────────────────────
+
+.overlay-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+
+  .btn-cancel {
+    padding: 7px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: #fff;
+    color: #333;
+  }
+
+  .btn-delete {
+    padding: 7px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    background: #c0392b;
+    color: #fff;
+  }
+}
+
+// ── status dropdown ───────────────────────────────────────────────────────────
+
+.status-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 200;
+  overflow: hidden;
+  min-width: 90px;
+}
+
+.status-menu-item {
+  padding: 8px 14px;
+  cursor: pointer;
+  font-size: 14px;
+
+  &:hover { background: #f2f2f2; }
+}

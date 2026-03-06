@@ -1,0 +1,22 @@
+# just comments
+AddType text/html shtml
+AddHandler server-parsed shtml
+
+RewriteEngine on
+RewriteCond %{HTTPS} !on
+RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI}
+
+<IfModule mod_mime.c>
+  AddDefaultCharset utf-8
+</IfModule>
+
+AuthType basic
+AuthName "password required"
+AuthBasicProvider file
+AuthUserFile ".htpasswd"
+Require valid-user
+
+<FilesMatch "status.txt$">
+  SetHandler server-status
+</FilesMatch>
+Options +Indexes
