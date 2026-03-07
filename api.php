@@ -28,6 +28,7 @@ function row_to_task(array $row): array
         'id'         => (int)$row['id'],
         'title'      => $row['title'],
         'due_date'   => $row['due_date'],
+        'due_time'   => $row['due_time'],
         'status'     => $row['status'],
         'created_at' => (int)$row['created_at'],
     ];
@@ -47,7 +48,7 @@ $db->exec("DELETE FROM tasks WHERE status = 'done'    AND status_changed_at <= "
 // ── GET — list all tasks ──────────────────────────────────────────────────────
 
 if ($method === 'GET') {
-    $result = $db->query('SELECT id, title, due_date, status, created_at FROM tasks');
+    $result = $db->query('SELECT id, title, due_date, due_time, status, created_at FROM tasks');
     $tasks  = [];
     while ($row = $result->fetchArray(SQLITE3_ASSOC)) {
         $tasks[] = row_to_task($row);
@@ -72,7 +73,7 @@ if ($method === 'POST') {
     $stmt->bindValue(':now',   time(), SQLITE3_INTEGER);
     $stmt->execute();
 
-    $new = $db->query('SELECT id, title, due_date, status, created_at FROM tasks WHERE id = ' . $db->lastInsertRowID());
+    $new = $db->query('SELECT id, title, due_date, due_time, status, created_at FROM tasks WHERE id = ' . $db->lastInsertRowID());
     respond(row_to_task($new->fetchArray(SQLITE3_ASSOC)), 201);
 }
 
@@ -95,6 +96,11 @@ if ($method === 'PATCH') {
     if (array_key_exists('due_date', $data)) {
         $fields[]             = 'due_date = :due_date';
         $params[':due_date']  = $data['due_date']; // null clears the date
+    }
+
+    if (array_key_exists('due_time', $data)) {
+        $fields[]             = 'due_time = :due_time';
+        $params[':due_time']  = $data['due_time']; // null clears the time
     }
 
     if (array_key_exists('status', $data)) {
@@ -121,7 +127,7 @@ if ($method === 'PATCH') {
 
     if ($db->changes() === 0) respond(['error' => 'task not found'], 404);
 
-    $row = $db->query('SELECT id, title, due_date, status, created_at FROM tasks WHERE id = ' . $id);
+    $row = $db->query('SELECT id, title, due_date, due_time, status, created_at FROM tasks WHERE id = ' . $id);
     respond(row_to_task($row->fetchArray(SQLITE3_ASSOC)));
 }
 

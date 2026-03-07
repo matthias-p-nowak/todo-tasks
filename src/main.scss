@@ -62,7 +62,7 @@ body {
 .status-done    { background: darkgreen; color: #fff; }
 .status-removed { background: #c9a97a; }
 
-// ── due date ──────────────────────────────────────────────────────────────────
+// ── due date / time / icons ───────────────────────────────────────────────────
 
 .due-date {
   font-size: 13px;
@@ -70,6 +70,22 @@ body {
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
+}
+
+.due-time {
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.cal-icon,
+.clock-icon {
+  font-size: 18px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
 }
 
 // ── input row ─────────────────────────────────────────────────────────────────

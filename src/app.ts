@@ -2,6 +2,7 @@ interface Task {
   id: number;
   title: string;
   due_date: string | null;
+  due_time: string | null;
   status: 'todo' | 'doing' | 'done' | 'removed' | null;
   created_at: number;
 }
@@ -46,6 +47,13 @@ function render(): void {
     .sort((a, b) => {
       if (a.due_date! < b.due_date!) return -1;
       if (a.due_date! > b.due_date!) return 1;
+      // Same due date: tasks with a time sort before tasks without a time.
+      if (a.due_time && !b.due_time) return -1;
+      if (!a.due_time && b.due_time) return 1;
+      if (a.due_time && b.due_time) {
+        if (a.due_time < b.due_time) return -1;
+        if (a.due_time > b.due_time) return 1;
+      }
       return a.created_at - b.created_at;
     });
 
@@ -77,7 +85,7 @@ function render(): void {
 
 // ── row builders ───────────────────────────────────────────────────────────────
 
-/** Row for a task that has no due date yet. Clicking the title opens the date picker. */
+/** Row for a task that has no due date yet. Title click opens title editor; calendar emoji opens date picker. */
 function makeNoDueRow(task: Task): HTMLElement {
   const row = document.createElement('div');
   row.className = 'task no-date';
@@ -85,11 +93,17 @@ function makeNoDueRow(task: Task): HTMLElement {
   const title = document.createElement('span');
   title.className = 'task-title';
   title.textContent = task.title;
-  title.addEventListener('click', () => openDatePicker(task));
+  title.addEventListener('click', () => openTitleEditor(task));
+
+  const cal = document.createElement('span');
+  cal.className = 'cal-icon';
+  cal.textContent = '📅';
+  cal.addEventListener('click', e => { e.stopPropagation(); openDatePicker(task); });
 
   attachLongPress(row, () => openDeleteConfirm(task));
 
   row.appendChild(title);
+  row.appendChild(cal);
   return row;
 }
 
@@ -122,14 +136,26 @@ function makeHasDueRow(task: Task): HTMLElement {
 
   const due = document.createElement('span');
   due.className = 'due-date';
-  due.textContent = formatDate(task.due_date!);
+  due.textContent = task.due_date!;
   due.addEventListener('click', () => openDatePicker(task));
+
+  const timeEl = document.createElement('span');
+  if (task.due_time) {
+    timeEl.className = 'due-time';
+    timeEl.textContent = task.due_time;
+    timeEl.addEventListener('click', e => { e.stopPropagation(); openTimePicker(task); });
+  } else {
+    timeEl.className = 'clock-icon';
+    timeEl.textContent = '🕐';
+    timeEl.addEventListener('click', e => { e.stopPropagation(); openTimePicker(task); });
+  }
 
   attachLongPress(row, () => openDeleteConfirm(task));
 
   row.appendChild(title);
   row.appendChild(badge);
   row.appendChild(due);
+  row.appendChild(timeEl);
   return row;
 }
 
@@ -157,7 +183,89 @@ function openDatePicker(task: Task): void {
     } catch (err) { showError(err); }
   });
 
-  overlay.box.append(label, inp, btn);
+  /** Returns a date string YYYY-MM-DD offset by `days` from today. */
+  const offsetDate = (days: number): string => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+
+  const applyDate = async (dateVal: string) => {
+    const patch: Partial<Task> = { due_date: dateVal };
+    if (!task.status) patch.status = 'todo';
+    try {
+      Object.assign(task, await api.update(task.id, patch));
+      overlay.el.remove();
+      render();
+    } catch (err) { showError(err); }
+  };
+
+  const todayBtn = document.createElement('button');
+  todayBtn.textContent = 'Today';
+  todayBtn.className = 'btn-cancel';
+  todayBtn.addEventListener('click', () => applyDate(offsetDate(0)));
+
+  const nextWeekBtn = document.createElement('button');
+  nextWeekBtn.textContent = '+7d';
+  nextWeekBtn.className = 'btn-cancel';
+  nextWeekBtn.addEventListener('click', () => applyDate(offsetDate(7)));
+
+  const clearBtn = document.createElement('button');
+  clearBtn.textContent = 'Clear';
+  clearBtn.className = 'btn-cancel';
+  clearBtn.addEventListener('click', async () => {
+    try {
+      Object.assign(task, await api.update(task.id, { due_date: null, due_time: null, status: null }));
+      overlay.el.remove();
+      render();
+    } catch (err) { showError(err); }
+  });
+
+  const buttons = document.createElement('div');
+  buttons.className = 'overlay-buttons';
+  buttons.append(todayBtn, nextWeekBtn, clearBtn, btn);
+
+  overlay.box.append(label, inp, buttons);
+  document.body.appendChild(overlay.el);
+  inp.focus();
+}
+
+/** Opens a time picker. Sets or updates the due_time on the task. */
+function openTimePicker(task: Task): void {
+  const overlay = makeOverlay();
+
+  const label = document.createElement('label');
+  label.textContent = 'Pick a due time';
+
+  const inp = document.createElement('input');
+  inp.type = 'time';
+  inp.value = task.due_time ?? '';
+
+  const btn = makeOkButton(async () => {
+    if (!inp.value) return;
+    try {
+      Object.assign(task, await api.update(task.id, { due_time: inp.value }));
+      overlay.el.remove();
+      render();
+    } catch (err) { showError(err); }
+  });
+
+  const clearBtn = document.createElement('button');
+  clearBtn.textContent = 'Clear';
+  clearBtn.className = 'btn-cancel';
+  clearBtn.addEventListener('click', async () => {
+    try {
+      Object.assign(task, await api.update(task.id, { due_time: null }));
+      overlay.el.remove();
+      render();
+    } catch (err) { showError(err); }
+  });
+
+  const buttons = document.createElement('div');
+  buttons.className = 'overlay-buttons';
+  buttons.append(clearBtn, btn);
+
+  overlay.box.append(label, inp, buttons);
   document.body.appendChild(overlay.el);
   inp.focus();
 }
@@ -313,12 +421,6 @@ function makeOkButton(onClick: () => void): HTMLButtonElement {
 }
 
 // ── utils ──────────────────────────────────────────────────────────────────────
-
-/** Formats an ISO date string (YYYY-MM-DD) as DD/MM/YYYY. */
-function formatDate(iso: string): string {
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
-}
 
 /**
  * Shows an error dialog that closes on any click.
